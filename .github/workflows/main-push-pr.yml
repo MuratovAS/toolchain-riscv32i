@@ -1,0 +1,37 @@
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  run:
+    name: Build project and testbench
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build toolchain
+        run: |
+             chmod +x assembly.sh
+             docker run --rm -v $PWD:/rep -v /opt:/opt --entrypoint sh ubuntu /rep/assembly.sh
+      - name: publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_TAG="$(date +%y%m%d)"
+          curl -sL -XPOST -d '{"tag_name": "'$RELEASE_TAG'"}' \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H 'Content-Type: application/json' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases"
+          RELEASE_ID=$(curl -svL https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/$RELEASE_TAG | jq .id)
+          cd /opt
+          RELEASE_FILE="riscv32i.tar.gz"
+          curl -sL -XPOST -T ${RELEASE_FILE}* \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type:application/octet-stream" \
+            "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$RELEASE_ID/assets?&name=riscv32i-$RELEASE_TAG.tar.gz"
+        shell: bash

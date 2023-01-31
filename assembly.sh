@@ -17,4 +17,4 @@ mkdir build; cd build
 ../configure --with-arch=rv32i --prefix=/opt/riscv32i
 make -j$(nproc)
 
-cd /opt/ && tar -cvf riscv32i.tar.gz riscv32i
+cd /opt/riscv32i && tar -cvf riscv32i.tar.gz *
